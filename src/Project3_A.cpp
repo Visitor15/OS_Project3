@@ -64,6 +64,8 @@ pid_t performFork() {
 		simulateBusyWork('P');
 
 		--num_of_forks;
+		
+		// This is just for testing
 
 		waitpid(getpid(), NULL, 0);
 
