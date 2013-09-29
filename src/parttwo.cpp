@@ -68,14 +68,16 @@ void prepareThreads() {
 	std::cout << "NUM OF THREADS: " << m_numOfThreads << " AND NUM OF DARTS: " << m_numOfDarts << "\n";
 
 	for(int i = 0; i < m_numOfThreads; i++) {
-		ComplexThread(m_numOfDarts).createAndExecuteThread();
+		std::cout << "Creating new thread: " << i << "\n";
+		ComplexThread* thread = new ComplexThread(m_numOfDarts/4);
+		thread->createAndExecuteThread();
 	}
 }
 
 void *performWork(void* complex_thread)  {
 	ComplexThread* working_thread = static_cast<ComplexThread*>(complex_thread);
 
-	std::cout << "Thread: " << working_thread->m_thread << " is performing work on " << working_thread->m_totalDarts << "\n";
+	std::cout << "Thread: " << working_thread->m_thread << " is performing work on " << working_thread->m_totalDarts << " darts.\n";
 
 	for(int i = 0; i < 25; i++) {
 		std::cout << "\tT-" << working_thread->m_thread << " : " << i << "\n";
