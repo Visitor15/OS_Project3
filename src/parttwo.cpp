@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <vector>
+#include <unistd.h>
 
 void prepareThreads();
 void *performWork(void *complex_thread);
@@ -39,12 +40,15 @@ struct ComplexThread {
 
 	void createAndExecuteThread() {
 		m_threadID = pthread_create(&m_thread, NULL, &performWork, this);
+
+		if(m_threadID == 0) {
+			m_threadID = pthread_self();
+		}
 	}
 };
 
 void onThreadFinished(ComplexThread* thread);
 
-// Variable declaration here
 int m_numOfThreads = 0;
 int m_numOfDarts = 0;
 
@@ -54,6 +58,9 @@ int main() {
 
 	prepareThreads();
 
+	// Temp
+	sleep(10);
+	std::cout << "\nEXITING!";
 
 	return 0;
 }
@@ -69,7 +76,7 @@ void prepareThreads() {
 
 	for(int i = 0; i < m_numOfThreads; i++) {
 		std::cout << "Creating new thread: " << i << "\n";
-		ComplexThread* thread = new ComplexThread(m_numOfDarts/4);
+		ComplexThread* thread = new ComplexThread(m_numOfDarts/m_numOfThreads);
 		thread->createAndExecuteThread();
 	}
 }
@@ -89,14 +96,8 @@ void *performWork(void* complex_thread)  {
 }
 
 void onThreadFinished(ComplexThread* thread) {
-	ComplexThread tmp_thread;
-
-	pthread_exit((void*) thread);
-	pthread_join(thread->m_thread, (void **)&tmp_thread);
+	pthread_join(thread->m_thread, (void **)&thread);
+//	pthread_exit((void*) thread);
 
 	std::cout << "Thread: " << thread->m_thread << " finished!\n";
 }
-
-//void performWork(std::vector<pthread_t>* list) {
-//
-//}
