@@ -18,22 +18,23 @@
 #include <stdlib.h>
 
 enum SORT_TYPE {
-	QUICK_SORT,
-	QUICK_SORT3,
-	SELECTION_SORT,
-	MERGE_SORT,
-	BUBBLE_SORT,
-	SHELL_SORT,
-	INSERTION_SORT,
-	HEAP_SORT,
-	BUCKET_SORT,
-	COMB_SORT
+	QUICK_SORT = 0,
+	QUICK_SORT3 = 1,
+	SELECTION_SORT = 2,
+	MERGE_SORT = 3,
+	BUBBLE_SORT = 4,
+	SHELL_SORT = 5,
+	INSERTION_SORT = 6,
+	HEAP_SORT = 7,
+	BUCKET_SORT = 8,
+	COMB_SORT = 9
 };
 
 std::vector<long> masterList;
 
 int m_numOfRunningThreads = 0;
 
+std::string printENUM(SORT_TYPE type);
 void *performSortOnThread(void *complex_thread);
 
 struct ComplexThread {
@@ -48,7 +49,8 @@ struct ComplexThread {
 		m_sort_type = QUICK_SORT;
 	}
 
-	ComplexThread(const std::vector<long> list) : unsorted_list(list) {
+	ComplexThread(const std::vector<long> list) :
+			unsorted_list(list) {
 		m_thread = NULL;
 		m_threadID = -1;
 		m_sort_type = QUICK_SORT;
@@ -81,7 +83,7 @@ void trial2();
 int main() {
 //	partitionMasterListForArbitraryNumOfThreads();
 
-	trial1();
+	trial2();
 
 	return 0;
 }
@@ -165,17 +167,106 @@ std::vector<ComplexThread*> partitionMasterListForSpecifiedNumOfThreads(
 	return threadList;
 }
 
+/*
+ * Trial 1 is only designed for 2 threads.
+ */
 void trial1() {
 	std::vector<ComplexThread*> threadList =
-			partitionMasterListForSpecifiedNumOfThreads(5);
+			partitionMasterListForSpecifiedNumOfThreads(2);
 
 	for (int i = 0; i < threadList.size(); i++) {
 		std::cout << "THREAD DATA COUNT: "
 				<< threadList.at(i)->unsorted_list.size() << std::endl;
-	}
 
+		if (i == 0) {
+			// Using QUICK SORT
+			threadList.at(i)->m_sort_type = QUICK_SORT;
+
+			std::cout << "SORT TYPE SET TO: "
+					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
+		}
+		if (i == 1) {
+			// Using SELECTION SORT
+			threadList.at(i)->m_sort_type = SELECTION_SORT;
+
+			std::cout << "SORT TYPE SET TO: "
+					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
+		}
+	}
 }
 
+/*
+ * Trial 2 is only designed for 4 threads.
+ */
 void trial2() {
+	std::vector<ComplexThread*> threadList =
+			partitionMasterListForSpecifiedNumOfThreads(4);
 
+	for (int i = 0; i < threadList.size(); i++) {
+		std::cout << "THREAD DATA COUNT: "
+				<< threadList.at(i)->unsorted_list.size() << std::endl;
+
+		if (i == 0) {
+			// Using QUICK SORT
+			threadList.at(i)->m_sort_type = MERGE_SORT;
+
+			std::cout << "SORT TYPE SET TO: "
+					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
+		}
+		if (i == 1) {
+			// Using SELECTION SORT
+			threadList.at(i)->m_sort_type = BUBBLE_SORT;
+
+			std::cout << "SORT TYPE SET TO: "
+					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
+		}
+
+		if (i == 2) {
+			// Using SELECTION SORT
+			threadList.at(i)->m_sort_type = SHELL_SORT;
+
+			std::cout << "SORT TYPE SET TO: "
+					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
+		}
+
+		if (i == 3) {
+			// Using SELECTION SORT
+			threadList.at(i)->m_sort_type = INSERTION_SORT;
+
+			std::cout << "SORT TYPE SET TO: "
+					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
+		}
+	}
+}
+
+/*
+ * Simply for testing purposes.
+ */
+std::string printENUM(SORT_TYPE type) {
+	switch (type) {
+	case QUICK_SORT: {
+		return "QuickSort";
+		break;
+	}
+	case SELECTION_SORT: {
+		return "SelectionSort";
+		break;
+	}
+	case MERGE_SORT: {
+		return "MergeSort";
+		break;
+	}
+	case BUBBLE_SORT: {
+		return "BubbleSort";
+		break;
+	}
+	case SHELL_SORT: {
+		return "ShellSort";
+		break;
+	}
+	case INSERTION_SORT: {
+		return "InsertionSort";
+		break;
+	}
+	}
 }
