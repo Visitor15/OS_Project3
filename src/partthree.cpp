@@ -35,6 +35,14 @@ std::vector<long> masterList;
 int m_numOfRunningThreads = 0;
 
 std::string printENUM(SORT_TYPE type);
+
+void doQuickSort(std::vector<long> &unsortedList, long begin, long end);
+void doSelectionSort(std::vector<long> &unsortedList);
+void doMergeSort(std::vector<long> &unsortedList);
+void doBubbleSort(std::vector<long> &unsortedList);
+void doShellSort(std::vector<long> &unsortedList);
+void doInsertionSort(std::vector<long> &unsortedList);
+
 void *performSortOnThread(void *complex_thread);
 
 struct ComplexThread {
@@ -82,7 +90,7 @@ void trial2();
 int main() {
 //	partitionMasterListForArbitraryNumOfThreads();
 
-	trial2();
+	trial1();
 
 	return 0;
 }
@@ -152,6 +160,22 @@ void trial1() {
 
 			std::cout << "SORT TYPE SET TO: "
 					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
+
+			std::cout << "First item is: "
+					<< threadList.at(i)->unsorted_list.at(0) << std::endl;
+
+			doQuickSort(threadList.at(i)->unsorted_list, 0L,
+					(long) threadList.at(i)->unsorted_list.size() - 1);
+
+			std::cout << "\nNew first item is: "
+					<< threadList.at(i)->unsorted_list.at(0) << std::endl;
+
+			std::vector<long> tempList = threadList.at(i)->unsorted_list;
+
+			for(int k = 0; k < tempList.size(); k++) {
+				std::cout << tempList.at(k) << "\n";
+			}
+
 		}
 		if (i == 1) {
 			// Using SELECTION SORT
@@ -205,6 +229,74 @@ void trial2() {
 					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
 		}
 	}
+}
+
+void doQuickSort(std::vector<long> &unsortedList, long leftMost,
+		long rightMost) {
+
+	long tempVal;
+	long i = leftMost;
+	long j = rightMost;
+	long pivotVal = unsortedList.at((leftMost + rightMost) / 2);
+
+//	std::cout << "Pivot pos: " << pivotVal << ", ";
+
+	while (i <= j) {
+		while (unsortedList.at(i) < pivotVal)
+			i++;
+		while (unsortedList.at(j) > pivotVal)
+			j--;
+		if (i <= j) {
+			tempVal = unsortedList.at(i);
+			unsortedList.at(i) = unsortedList.at(j);
+			unsortedList.at(j) = tempVal;
+			i++;
+			j--;
+		}
+	}
+
+	if (leftMost < j) {
+		if (j % 50 == 0) {
+			std::cout << "\n";
+		}
+		std::cout << ".";
+		doQuickSort(unsortedList, leftMost, j);
+	}
+	if (i < rightMost) {
+		if (i % 50 == 0) {
+			std::cout << "\n";
+		}
+		std::cout << ".";
+		doQuickSort(unsortedList, i, rightMost);
+	}
+
+//	std::cout << "FINISHED! " << std::endl;
+
+//	for (int p = 0; p < unsortedList.size(); p++) {
+//		if (p < 25) {
+//			std::cout << unsortedList.at(p) << std::endl;
+//		}
+//	}
+}
+
+void doSelectionSort(std::vector<long> &unsortedList) {
+
+}
+
+void doMergeSort(std::vector<long> &unsortedList) {
+
+}
+
+void doBubbleSort(std::vector<long> &unsortedList) {
+
+}
+
+void doShellSort(std::vector<long> &unsortedList) {
+
+}
+
+void doInsertionSort(std::vector<long> &unsortedList) {
+
 }
 
 /*
