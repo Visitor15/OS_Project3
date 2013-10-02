@@ -13,7 +13,6 @@
 #include <unistd.h>
 #include <vector>
 #include <fstream>
-#include <iterator>
 #include <sstream>
 #include <string>
 #include <stdlib.h>
@@ -31,22 +30,20 @@ enum SORT_TYPE {
 	COMB_SORT = 9
 };
 
-std::vector<long> masterUnsortedList;
-std::vector<long> masterSortedList;
+std::vector<long> masterList;
 
 int m_numOfRunningThreads = 0;
 
 std::string printENUM(SORT_TYPE type);
 
 void doQuickSort(std::vector<long> &unsortedList, long begin, long end);
-void doSelectionSort(std::vector<long> &unsortedList);
+void doSelectionSort(std::vector<long> &unsortedList, long begin, long end);
 void doMergeSort(std::vector<long> &unsortedList);
 void doBubbleSort(std::vector<long> &unsortedList);
 void doShellSort(std::vector<long> &unsortedList);
 void doInsertionSort(std::vector<long> &unsortedList);
-void writeContentsToFile(std::vector<long> &values, std::string fileName);
-std::vector<long> mergeSortedLists(std::vector<long> &firstList,
-		std::vector<long> &secondList);
+
+void swap(long &x, long &y);
 
 void *performSortOnThread(void *complex_thread);
 
@@ -54,7 +51,7 @@ struct ComplexThread {
 	long m_threadID;
 	pthread_t m_thread;
 	SORT_TYPE m_sort_type;
-	std::vector<long> data_list;
+	std::vector<long> unsorted_list;
 
 	ComplexThread() {
 		m_threadID = -1;
@@ -63,14 +60,14 @@ struct ComplexThread {
 	}
 
 	ComplexThread(const std::vector<long> list) :
-			data_list(list) {
+			unsorted_list(list) {
 		m_thread = NULL;
 		m_threadID = -1;
 		m_sort_type = QUICK_SORT;
 	}
 
 	ComplexThread(const std::vector<long> list, SORT_TYPE sort_type) :
-			data_list(list), m_sort_type(sort_type) {
+			unsorted_list(list), m_sort_type(sort_type) {
 		m_thread = NULL;
 		m_threadID = -1;
 	}
@@ -86,7 +83,6 @@ struct ComplexThread {
 	}
 };
 
-void onThreadFinished(ComplexThread* thread);
 std::vector<ComplexThread*> partitionMasterListForSpecifiedNumOfThreads(
 		int numOfThreads);
 
@@ -94,22 +90,9 @@ void trial1();
 void trial2();
 
 int main() {
+//	partitionMasterListForArbitraryNumOfThreads();
 
 	trial1();
-
-	/* Sleeping the main thread for 1 second while background
-	 * threads are still processing.
-	 */
-	while (m_numOfRunningThreads > 0) {
-		sleep(1);
-	}
-
-	std::cout << "All threads finished!" << std::endl;
-	for(int i = 0; i < masterSortedList.size(); i++) {
-		std::cout << masterSortedList.at(i) << std::endl;
-	}
-
-	writeContentsToFile(masterSortedList, "testFile.txt");
 
 	return 0;
 }
@@ -126,7 +109,7 @@ std::vector<ComplexThread*> partitionMasterListForSpecifiedNumOfThreads(
 		//Converting from a string to a long.
 		long number = strtol((char*) m_line.c_str(), NULL, 0);
 
-		masterUnsortedList.push_back(number);
+		masterList.push_back(number);
 	}
 
 	/*
@@ -138,7 +121,7 @@ std::vector<ComplexThread*> partitionMasterListForSpecifiedNumOfThreads(
 		std::cin >> numOfThreads;
 	}
 
-	int range = masterUnsortedList.size() / numOfThreads;
+	int range = masterList.size() / numOfThreads;
 	long offset = 0;
 	long lastIndex = range;
 	for (int i = 0; i < numOfThreads; i++) {
@@ -146,82 +129,20 @@ std::vector<ComplexThread*> partitionMasterListForSpecifiedNumOfThreads(
 		std::vector<long>::iterator it;
 
 		for (int j = offset; j < lastIndex; j++) {
-			partitionedData.push_back(masterUnsortedList.at(j));
+			partitionedData.push_back(masterList.at(j));
 		}
 
 		offset += range;
 		lastIndex += range;
 
 		ComplexThread* thread = new ComplexThread(partitionedData);
-		std::cout << "Partitioned data size is: " << thread->data_list.size()
-				<< std::endl;
+		std::cout << "Partitioned data size is: "
+				<< thread->unsorted_list.size() << std::endl;
 
 		threadList.push_back(thread);
 	}
 
 	return threadList;
-}
-
-/*
- * Main execution thread used by a ComplexThread when pthread_create() is called.
- */
-void *performSortOnThread(void* complex_thread) {
-	ComplexThread* working_thread = static_cast<ComplexThread*>(complex_thread);
-
-	switch (working_thread->m_sort_type) {
-	case QUICK_SORT: {
-		std::cout << "QuickSort" << std::endl;
-		doQuickSort(working_thread->data_list, 0,
-				(working_thread->data_list.size() - 1));
-		break;
-	}
-	case SELECTION_SORT: {
-		std::cout << "SelectionSort.... But it's QuickSort right now"
-				<< std::endl;
-
-		/*
-		 * This is just temporary. Selection sort has not been implemented yet.
-		 */
-		doQuickSort(working_thread->data_list, 0,
-				(working_thread->data_list.size() - 1));
-		break;
-	}
-	case MERGE_SORT: {
-		std::cout << "MergeSort" << std::endl;
-		break;
-	}
-	case BUBBLE_SORT: {
-		std::cout << "BubbleSort" << std::endl;
-		break;
-	}
-	case SHELL_SORT: {
-		std::cout << "ShellSort" << std::endl;
-		break;
-	}
-	case INSERTION_SORT: {
-		std::cout << "InsertionSort" << std::endl;
-		break;
-	}
-	}
-
-	onThreadFinished(working_thread);
-	return working_thread;
-}
-
-void onThreadFinished(ComplexThread* thread) {
-	pthread_join(thread->m_thread, (void **) &thread);
-
-	masterSortedList = mergeSortedLists(thread->data_list, masterSortedList);
-
-	--m_numOfRunningThreads;
-
-	/*
-	 * Synchronizing the message output so we will not have the full message interrupted
-	 * by another thread attempting to post a message at the same time.
-	 */
-//	basic_mutex.lock();
-//	std::cout << "Thread: " << thread->m_thread << " finished!" << std::endl;
-//	basic_mutex.unlock();
 }
 
 /*
@@ -232,8 +153,8 @@ void trial1() {
 			partitionMasterListForSpecifiedNumOfThreads(2);
 
 	for (int i = 0; i < threadList.size(); i++) {
-//		std::cout << "THREAD DATA COUNT: " << threadList.at(i)->data_list.size()
-//				<< std::endl;
+		std::cout << "THREAD DATA COUNT: "
+				<< threadList.at(i)->unsorted_list.size() << std::endl;
 
 		if (i == 0) {
 			// Using QUICK SORT
@@ -242,7 +163,20 @@ void trial1() {
 			std::cout << "SORT TYPE SET TO: "
 					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
 
-			threadList.at(i)->createAndExecuteThread();
+			std::cout << "First item is: "
+					<< threadList.at(i)->unsorted_list.at(0) << std::endl;
+
+			doQuickSort(threadList.at(i)->unsorted_list, 0L,
+					(long) threadList.at(i)->unsorted_list.size() - 1);
+
+			std::cout << "\nNew first item is: "
+					<< threadList.at(i)->unsorted_list.at(0) << std::endl;
+
+			std::vector<long> tempList = threadList.at(i)->unsorted_list;
+
+			for(int k = 0; k < tempList.size(); k++) {
+				std::cout << tempList.at(k) << "\n";
+			}
 
 		}
 		if (i == 1) {
@@ -252,7 +186,20 @@ void trial1() {
 			std::cout << "SORT TYPE SET TO: "
 					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
 
-			threadList.at(i)->createAndExecuteThread();
+			std::cout << "First item is: "
+					  << threadList.at(i)->unsorted_list.at(0) << std::endl;
+
+			doSelectionSort(threadList.at(i)->unsorted_list, 0L,
+					(long) threadList.at(i)->unsorted_list.size() - 1);
+
+			std::cout << "\nNew first item is: "
+					<< threadList.at(i)->unsorted_list.at(0) << std::endl;
+
+			std::vector<long> tempList = threadList.at(i)->unsorted_list;
+
+			for(int k = 0; k < tempList.size(); k++) {
+				std::cout << tempList.at(k) << "\n";
+			}
 		}
 	}
 }
@@ -265,8 +212,8 @@ void trial2() {
 			partitionMasterListForSpecifiedNumOfThreads(4);
 
 	for (int i = 0; i < threadList.size(); i++) {
-		std::cout << "THREAD DATA COUNT: " << threadList.at(i)->data_list.size()
-				<< std::endl;
+		std::cout << "THREAD DATA COUNT: "
+				<< threadList.at(i)->unsorted_list.size() << std::endl;
 
 		if (i == 0) {
 			// Using QUICK SORT
@@ -309,6 +256,8 @@ void doQuickSort(std::vector<long> &unsortedList, long leftMost,
 	long j = rightMost;
 	long pivotVal = unsortedList.at((leftMost + rightMost) / 2);
 
+//	std::cout << "Pivot pos: " << pivotVal << ", ";
+
 	while (i <= j) {
 		while (unsortedList.at(i) < pivotVal)
 			i++;
@@ -324,21 +273,64 @@ void doQuickSort(std::vector<long> &unsortedList, long leftMost,
 	}
 
 	if (leftMost < j) {
-		if(j % 25 == 0) {
-			std::cout << ".";
+		if (j % 50 == 0) {
+			std::cout << "\n";
 		}
+		std::cout << ".";
 		doQuickSort(unsortedList, leftMost, j);
 	}
 	if (i < rightMost) {
-		if(i % 25 == 0) {
-			std::cout << ".";
+		if (i % 50 == 0) {
+			std::cout << "\n";
 		}
+		std::cout << ".";
 		doQuickSort(unsortedList, i, rightMost);
+	}
+
+//	std::cout << "FINISHED! " << std::endl;
+
+//	for (int p = 0; p < unsortedList.size(); p++) {
+//		if (p < 25) {
+//			std::cout << unsortedList.at(p) << std::endl;
+//		}
+//	}
+}
+
+void doSelectionSort(std::vector<long> &unsortedList, long leftMost,
+		long rightMost) {
+
+	long i, j;
+	long iMin;
+	long n = rightMost;
+
+	for (j = leftMost; j < n-1; j++) {
+	    /* find the min element in the unsorted a[j .. n-1] */
+
+	    /* assume the min is the first element */
+	    iMin = j;
+	    /* test against elements after j to find the smallest */
+	    for ( i = j+1; i < n; i++) {
+	        /* if this element is less, then it is the new minimum */
+	        if (unsortedList.at(i) < unsortedList.at(iMin)) {
+	            /* found new minimum; remember its index */
+	            iMin = i;
+	        }
+	    }
+
+	    /* iMin is the index of the minimum element. Swap it with the current position */
+	    if ( iMin != j ) {
+	        swap(unsortedList.at(j), unsortedList.at(iMin));
+	    }
+
+	    std::cout << j << "\t" << unsortedList.at(j) << std::endl;
 	}
 }
 
-void doSelectionSort(std::vector<long> &unsortedList) {
-
+void swap(long &x, long &y)
+{
+	long temp = x;
+	x = y;
+	y = temp;
 }
 
 void doMergeSort(std::vector<long> &unsortedList) {
@@ -355,54 +347,6 @@ void doShellSort(std::vector<long> &unsortedList) {
 
 void doInsertionSort(std::vector<long> &unsortedList) {
 
-}
-
-std::vector<long> mergeSortedLists(std::vector<long> &firstList,
-		std::vector<long> &secondList) {
-	long firstListSize = firstList.size();
-	long secondListSize = secondList.size();
-
-	long totalSize = firstListSize + secondListSize;
-
-	std::vector<long> finalSortedList(totalSize);
-
-	long i = 0;
-	long j = 0;
-	long k = 0;
-
-	while (i < firstListSize && j < secondListSize) {
-		if (firstList.at(i) <= secondList.at(j)) {
-			finalSortedList.at(k) = firstList.at(i);
-			i++;
-		} else {
-			finalSortedList.at(k) = secondList.at(j);
-			j++;
-		}
-		k++;
-	}
-	if (i < firstListSize) {
-		for (int p = i; p < firstListSize; p++) {
-			finalSortedList.at(k) = firstList.at(p);
-			k++;
-		}
-	} else {
-		for (int p = j; p < secondListSize; p++) {
-			finalSortedList.at(k) = secondList.at(p);
-			k++;
-		}
-	}
-
-	return finalSortedList;
-}
-
-void writeContentsToFile(std::vector<long> &values, std::string fileName) {
-	std::cout << "Writing contents to file: " << fileName << std::endl;
-
-	std::ofstream outFile((char*) fileName.c_str());
-	std::ostream_iterator<long> out_iterator(outFile, "\n");
-	std::copy(values.begin(), values.end(), out_iterator);
-
-	outFile.close();
 }
 
 /*
