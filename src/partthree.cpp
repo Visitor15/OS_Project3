@@ -73,7 +73,6 @@ struct ComplexThread {
 	}
 };
 
-void partitionMasterListForArbitraryNumOfThreads();
 std::vector<ComplexThread*> partitionMasterListForSpecifiedNumOfThreads(
 		int numOfThreads);
 
@@ -86,46 +85,6 @@ int main() {
 	trial2();
 
 	return 0;
-}
-
-/*
- * Method used to evenly distribute elements from the masterList to
- * an arbitrary number of threads.
- */
-void partitionMasterListForArbitraryNumOfThreads() {
-	std::ifstream inStream("numbers.txt");
-	std::string m_line;
-	std::stringstream stringStream;
-	while (std::getline(inStream, m_line)) {
-
-		//Converting from a string to a long.
-		long number = strtol((char*) m_line.c_str(), NULL, 0);
-
-		masterList.push_back(number);
-	}
-
-	int numOfThreads;
-	std::cout << "Number of threads: ";
-	std::cin >> numOfThreads;
-
-	int range = masterList.size() / numOfThreads;
-	long offset = 0;
-	long lastIndex = range;
-	for (int i = 0; i < numOfThreads; i++) {
-		std::vector<long> partitionedData;
-		std::vector<long>::iterator it;
-
-		for (int j = offset; j < lastIndex; j++) {
-			partitionedData.push_back(masterList.at(j));
-		}
-
-		offset += range;
-		lastIndex += range;
-
-		ComplexThread* thread = new ComplexThread(partitionedData);
-		std::cout << "Partitioned data size is: "
-				<< thread->unsorted_list.size() << std::endl;
-	}
 }
 
 std::vector<ComplexThread*> partitionMasterListForSpecifiedNumOfThreads(
@@ -141,6 +100,15 @@ std::vector<ComplexThread*> partitionMasterListForSpecifiedNumOfThreads(
 		long number = strtol((char*) m_line.c_str(), NULL, 0);
 
 		masterList.push_back(number);
+	}
+
+	/*
+	 * Sanity check to ensure we actually have a useful number of theads.
+	 * We'll purposely ask the user if we initially do not.
+	 */
+	if (numOfThreads == NULL || numOfThreads < 1) {
+		std::cout << "Number of threads: ";
+		std::cin >> numOfThreads;
 	}
 
 	int range = masterList.size() / numOfThreads;
