@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <vector>
 #include <fstream>
+#include <iterator>
 #include <sstream>
 #include <string>
 #include <stdlib.h>
@@ -43,6 +44,7 @@ void doMergeSort(std::vector<long> &unsortedList);
 void doBubbleSort(std::vector<long> &unsortedList);
 void doShellSort(std::vector<long> &unsortedList);
 void doInsertionSort(std::vector<long> &unsortedList);
+void writeContentsToFile(std::vector<long> &values, std::string fileName);
 std::vector<long> mergeSortedLists(std::vector<long> &firstList,
 		std::vector<long> &secondList);
 
@@ -106,6 +108,8 @@ int main() {
 	for(int i = 0; i < masterSortedList.size(); i++) {
 		std::cout << masterSortedList.at(i) << std::endl;
 	}
+
+	writeContentsToFile(masterSortedList, "testFile.txt");
 
 	return 0;
 }
@@ -383,6 +387,14 @@ std::vector<long> mergeSortedLists(std::vector<long> &firstList,
 	}
 
 	return finalSortedList;
+}
+
+void writeContentsToFile(std::vector<long> &values, std::string fileName) {
+	std::cout << "Writing contents to file: " << fileName << std::endl;
+
+	std::ofstream outFile((char*) fileName.c_str());
+	std::ostream_iterator<long> out_iterator(outFile, "\n");
+	std::copy(values.begin(), values.end(), out_iterator);
 }
 
 /*
