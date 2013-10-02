@@ -324,9 +324,15 @@ void doQuickSort(std::vector<long> &unsortedList, long leftMost,
 	}
 
 	if (leftMost < j) {
+		if(j % 25 == 0) {
+			std::cout << ".";
+		}
 		doQuickSort(unsortedList, leftMost, j);
 	}
 	if (i < rightMost) {
+		if(i % 25 == 0) {
+			std::cout << ".";
+		}
 		doQuickSort(unsortedList, i, rightMost);
 	}
 }
@@ -395,6 +401,8 @@ void writeContentsToFile(std::vector<long> &values, std::string fileName) {
 	std::ofstream outFile((char*) fileName.c_str());
 	std::ostream_iterator<long> out_iterator(outFile, "\n");
 	std::copy(values.begin(), values.end(), out_iterator);
+
+	outFile.close();
 }
 
 /*
