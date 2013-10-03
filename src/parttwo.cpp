@@ -12,14 +12,13 @@
 #include <stdlib.h>
 #include <iostream>
 #include <unistd.h>
-#include <mutex>
 
 /*
  * Used to post a thread message update so another
  * thread cannot come along and post a message
  * midway of another message getting posted.
  */
-std::mutex basic_mutex;
+pthread_mutex_t globalLock = PTHREAD_MUTEX_INITIALIZER;
 
 double calculatePi(long totalDarts, long dartsHit);
 void prepareThreads();
@@ -73,7 +72,6 @@ const double AREA_OF_SQUARE = 2 * 2;
 const double RADIUS = 1;
 
 int main() {
-
 	clock_t startTime = clock();
 
 	prepareThreads();
@@ -89,7 +87,7 @@ int main() {
 
 	double PI = calculatePi(m_numOfDarts, m_numOfDartsHit);
 
-	double executionTime = double(startTime - clock()) / (double) CLOCKS_PER_SEC;
+	double executionTime = double(clock() - startTime) / (double) CLOCKS_PER_SEC;
 
 	std::cout << "===========================" << std::endl;
 	std::cout << "RESULTS" << std::endl;
@@ -109,7 +107,7 @@ void prepareThreads() {
 	std::cout << "Enter number of threads: ";
 	std::cin >> m_numOfThreads;
 
-	std::cout << "\nEnter number of darts to throw: ";
+	std::cout << "Enter number of darts to throw: ";
 	std::cin >> m_numOfDarts;
 
 	for (int i = 0; i < m_numOfThreads; i++) {
@@ -130,11 +128,11 @@ void *performWork(void* complex_thread) {
 	 * Synchronizing the message output so we will not have the full message interrupted
 	 * by another thread attempting to post a message at the same time.
 	 */
-	basic_mutex.lock();
+	pthread_mutex_lock(&globalLock);
 	std::cout << "Thread: " << working_thread->m_thread
 			<< " is performing work on " << working_thread->m_totalDarts
 			<< " darts." << std::endl;
-	basic_mutex.unlock();
+	pthread_mutex_unlock(&globalLock);
 
 	float pointX;
 	float pointY;
@@ -167,9 +165,9 @@ void onThreadFinished(ComplexThread* thread) {
 	 * Synchronizing the message output so we will not have the full message interrupted
 	 * by another thread attempting to post a message at the same time.
 	 */
-	basic_mutex.lock();
+	pthread_mutex_lock(&globalLock);
 	std::cout << "Thread: " << thread->m_thread << " finished!" << std::endl;
-	basic_mutex.unlock();
+	pthread_mutex_unlock(&globalLock);
 }
 
 double calculatePi(long totalDarts, long dartsHit) {

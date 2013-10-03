@@ -37,9 +37,9 @@ pthread_mutex_t globalLock = PTHREAD_MUTEX_INITIALIZER;
 std::vector<long> masterUnsortedList;
 std::vector<long> masterSortedList;
 
-int m_numOfRunningThreads = 0;
+std::string fileName;
 
-std::string printENUM(SORT_TYPE type);
+int m_numOfRunningThreads = 0;
 
 void doQuickSort(std::vector<long> &unsortedList, long begin, long end);
 void doSelectionSort(std::vector<long> &unsortedList);
@@ -48,13 +48,21 @@ void doBubbleSort(std::vector<long> &unsortedList);
 void doShellSort(std::vector<long> &unsortedList);
 void doInsertionSort(std::vector<long> &unsortedList);
 void writeContentsToFile(std::vector<long> &values, std::string fileName);
+
 std::vector<long> mergeSortedLists(std::vector<long> &firstList,
 		std::vector<long> &secondList);
 std::vector<long> mergeUnsortedLists(std::vector<long> &firstList,
 		std::vector<long> &secondList);
 
+/*
+ * Main execution thread used by a ComplexThread when pthread_create() is called.
+ */
 void *performSortOnThread(void *complex_thread);
 
+/*
+ * struct used to encapsulate a pthread along with its
+ * specific data.
+ */
 struct ComplexThread {
 	long m_threadID;
 	pthread_t m_thread;
@@ -91,6 +99,10 @@ struct ComplexThread {
 	}
 };
 
+/*
+ * Callback method used by a thread that has finished its execution.
+ * Allows itself to join the main thread and pass its processed data to it.
+ */
 void onThreadFinished(ComplexThread* thread);
 std::vector<ComplexThread*> partitionMasterListForSpecifiedNumOfThreads(
 		int numOfThreads);
@@ -99,8 +111,31 @@ void trial1();
 void trial2();
 
 int main() {
+	int user_choice = -1;
 
-	trial2();
+	std::cout << "Project 3 - Part 3" << std::endl;
+	std::cout << "\t1. Trial 1 (2 threads - Quicksort, Selection Sort" << std::endl;
+	std::cout << "\t2. Trial 2 (4 threads - Mergesort, Bubblsort, Shell sort, Insertion sort" << std::endl;
+	std::cout << "\n\tNumber choice: ";
+
+	std::cin >> user_choice;
+
+	switch(user_choice) {
+	case 1: {
+		fileName = "sorted_A.txt";
+		trial1();
+		break;
+	}
+	case 2: {
+		fileName = "sorted_B.txt";
+		trial2();
+		break;
+	}
+	default: {
+		std::cout << "Incorrect option." << std::endl;
+		exit(0);
+	}
+	}
 
 	/* Sleeping the main thread for 1 second while background
 	 * threads are still processing.
@@ -111,7 +146,8 @@ int main() {
 
 	std::cout << "All threads finished!" << std::endl;
 
-	writeContentsToFile(masterSortedList, "testFile.txt");
+
+	writeContentsToFile(masterSortedList, fileName);
 
 	return 0;
 }
@@ -129,14 +165,7 @@ std::vector<ComplexThread*> partitionMasterListForSpecifiedNumOfThreads(
 
 		masterUnsortedList.push_back(number);
 	}
-
-	std::cout << "Master list size is: " << masterUnsortedList.size()
-			<< std::endl;
-
 	inStream.close();
-
-	std::cout << "Master list size is now: " << masterUnsortedList.size()
-			<< std::endl;
 
 	/*
 	 * Sanity check to ensure we actually have a useful number of theads.
@@ -162,8 +191,6 @@ std::vector<ComplexThread*> partitionMasterListForSpecifiedNumOfThreads(
 		lastIndex += range;
 
 		ComplexThread* thread = new ComplexThread(partitionedData);
-		std::cout << "Partitioned data size is: " << thread->data_list.size()
-				<< std::endl;
 
 		threadList.push_back(thread);
 	}
@@ -196,14 +223,17 @@ void *performSortOnThread(void* complex_thread) {
 	}
 	case BUBBLE_SORT: {
 		std::cout << "BubbleSort" << std::endl;
+		doBubbleSort(working_thread->data_list);
 		break;
 	}
 	case SHELL_SORT: {
 		std::cout << "ShellSort" << std::endl;
+		doShellSort(working_thread->data_list);
 		break;
 	}
 	case INSERTION_SORT: {
 		std::cout << "InsertionSort" << std::endl;
+		doInsertionSort(working_thread->data_list);
 		break;
 	}
 	}
@@ -211,6 +241,7 @@ void *performSortOnThread(void* complex_thread) {
 	onThreadFinished(working_thread);
 	return working_thread;
 }
+
 
 void onThreadFinished(ComplexThread* thread) {
 	pthread_join(thread->m_thread, (void **) &thread);
@@ -223,7 +254,7 @@ void onThreadFinished(ComplexThread* thread) {
 }
 
 /*
- * Trial 1 is only designed for 2 threads.
+ * Trial 1 is designed for 2 threads.
  */
 void trial1() {
 	std::vector<ComplexThread*> threadList =
@@ -233,67 +264,45 @@ void trial1() {
 		if (i == 0) {
 			// Using QUICK SORT
 			threadList.at(i)->m_sort_type = QUICK_SORT;
-
-			std::cout << "SORT TYPE SET TO: "
-					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
-
 			threadList.at(i)->createAndExecuteThread();
-
 		}
 		if (i == 1) {
 			// Using SELECTION SORT
 			threadList.at(i)->m_sort_type = SELECTION_SORT;
-
-			std::cout << "SORT TYPE SET TO: "
-					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
-
 			threadList.at(i)->createAndExecuteThread();
 		}
 	}
 }
 
 /*
- * Trial 2 is only designed for 4 threads.
+ * Trial 2 is designed for 4 threads.
  */
 void trial2() {
 	std::vector<ComplexThread*> threadList =
-			partitionMasterListForSpecifiedNumOfThreads(1);
+			partitionMasterListForSpecifiedNumOfThreads(4);
 
 	for (int i = 0; i < threadList.size(); i++) {
-		std::cout << "THREAD DATA COUNT: " << threadList.at(i)->data_list.size()
-				<< std::endl;
-
 		if (i == 0) {
-			// Using QUICK SORT
+			// Using MERGE SORT
 			threadList.at(i)->m_sort_type = MERGE_SORT;
-
-			std::cout << "SORT TYPE SET TO: "
-					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
-
 			threadList.at(i)->createAndExecuteThread();
 		}
 		if (i == 1) {
-			// Using SELECTION SORT
+			// Using BUBBLE SORT
 			threadList.at(i)->m_sort_type = BUBBLE_SORT;
-
-			std::cout << "SORT TYPE SET TO: "
-					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
+			threadList.at(i)->createAndExecuteThread();
 		}
 
 		if (i == 2) {
-			// Using SELECTION SORT
+			// Using SHELL SORT
 			threadList.at(i)->m_sort_type = SHELL_SORT;
-
-			std::cout << "SORT TYPE SET TO: "
-					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
+			threadList.at(i)->createAndExecuteThread();
 		}
 
 		if (i == 3) {
-			// Using SELECTION SORT
+			// Using INSERTION SORT
 			threadList.at(i)->m_sort_type = INSERTION_SORT;
-
-			std::cout << "SORT TYPE SET TO: "
-					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
+			threadList.at(i)->createAndExecuteThread();
 		}
 	}
 }
@@ -361,11 +370,11 @@ void doMergeSort(std::vector<long> &list) {
 
 		long mMiddle = list.size() / 2;
 
-		for (int i = 0; i < mMiddle; i++) {
+		for (long i = 0; i < mMiddle; i++) {
 			mLeft.push_back(list.at(i));
 		}
 
-		for (int j = mMiddle; j < list.size(); j++) {
+		for (long j = mMiddle; j < list.size(); j++) {
 			mRight.push_back(list.at(j));
 		}
 
@@ -376,15 +385,54 @@ void doMergeSort(std::vector<long> &list) {
 }
 
 void doBubbleSort(std::vector<long> &unsortedList) {
+	long tempVal, n = unsortedList.size();
 
+	do {
+		long newN = 0;
+		for (long i = 1; i < n; ++i) {
+			if (unsortedList.at(i - 1) > unsortedList.at(i)) {
+				tempVal = unsortedList.at(i - 1);
+				unsortedList.at(i - 1) = unsortedList.at(i);
+				unsortedList.at(i) = tempVal;
+				newN = i;
+			}
+		}
+
+		n = newN;
+	} while (n > 0);
 }
 
 void doShellSort(std::vector<long> &unsortedList) {
+	int gaps[] = { 701, 301, 132, 57, 23, 10, 4, 1 };
+	int g = sizeof(gaps) / sizeof(int);
+	long temp, j;
 
+	for (long k = 0; k < g; ++k) {
+		for (long i = gaps[k]; i < unsortedList.size(); ++i) {
+			temp = unsortedList.at(i);
+
+			for (j = i; j >= gaps[k] && unsortedList.at(j - gaps[k]) > temp;
+					j -= gaps[k]) {
+				unsortedList.at(j) = unsortedList.at(j - gaps[k]);
+			}
+
+			unsortedList.at(j) = temp;
+		}
+	}
 }
 
 void doInsertionSort(std::vector<long> &unsortedList) {
+	long valueToInsert, holePos;
 
+	for (long i = 1; i < unsortedList.size(); ++i) {
+		valueToInsert = unsortedList.at(i);
+		holePos = i;
+		while (holePos > 0 && valueToInsert < unsortedList.at(holePos - 1)) {
+			unsortedList.at(holePos) = unsortedList.at(holePos - 1);
+			holePos = holePos - 1;
+		}
+		unsortedList.at(holePos) = valueToInsert;
+	}
 }
 
 std::vector<long> mergeUnsortedLists(std::vector<long> &firstList,
@@ -460,36 +508,4 @@ void writeContentsToFile(std::vector<long> &values, std::string fileName) {
 	outFile.close();
 
 	std::cout << "Data written to " << fileName << std::endl;
-}
-
-/*
- * Simply for testing purposes.
- */
-std::string printENUM(SORT_TYPE type) {
-	switch (type) {
-	case QUICK_SORT: {
-		return "QuickSort";
-		break;
-	}
-	case SELECTION_SORT: {
-		return "SelectionSort";
-		break;
-	}
-	case MERGE_SORT: {
-		return "MergeSort";
-		break;
-	}
-	case BUBBLE_SORT: {
-		return "BubbleSort";
-		break;
-	}
-	case SHELL_SORT: {
-		return "ShellSort";
-		break;
-	}
-	case INSERTION_SORT: {
-		return "InsertionSort";
-		break;
-	}
-	}
 }
