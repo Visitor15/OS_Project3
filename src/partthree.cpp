@@ -43,12 +43,14 @@ std::string printENUM(SORT_TYPE type);
 
 void doQuickSort(std::vector<long> &unsortedList, long begin, long end);
 void doSelectionSort(std::vector<long> &unsortedList);
-void doMergeSort(std::vector<long> &unsortedList);
+void doMergeSort(std::vector<long> &list);
 void doBubbleSort(std::vector<long> &unsortedList);
 void doShellSort(std::vector<long> &unsortedList);
 void doInsertionSort(std::vector<long> &unsortedList);
 void writeContentsToFile(std::vector<long> &values, std::string fileName);
 std::vector<long> mergeSortedLists(std::vector<long> &firstList,
+		std::vector<long> &secondList);
+std::vector<long> mergeUnsortedLists(std::vector<long> &firstList,
 		std::vector<long> &secondList);
 
 void *performSortOnThread(void *complex_thread);
@@ -98,7 +100,7 @@ void trial2();
 
 int main() {
 
-	trial1();
+	trial2();
 
 	/* Sleeping the main thread for 1 second while background
 	 * threads are still processing.
@@ -128,11 +130,13 @@ std::vector<ComplexThread*> partitionMasterListForSpecifiedNumOfThreads(
 		masterUnsortedList.push_back(number);
 	}
 
-	std::cout << "Master list size is: " + masterUnsortedList.size() << std::endl;
+	std::cout << "Master list size is: " << masterUnsortedList.size()
+			<< std::endl;
 
 	inStream.close();
 
-	std::cout << "Master list size is now: " + masterUnsortedList.size() << std::endl;
+	std::cout << "Master list size is now: " << masterUnsortedList.size()
+			<< std::endl;
 
 	/*
 	 * Sanity check to ensure we actually have a useful number of theads.
@@ -187,6 +191,7 @@ void *performSortOnThread(void* complex_thread) {
 	}
 	case MERGE_SORT: {
 		std::cout << "MergeSort" << std::endl;
+		doMergeSort(working_thread->data_list);
 		break;
 	}
 	case BUBBLE_SORT: {
@@ -252,7 +257,7 @@ void trial1() {
  */
 void trial2() {
 	std::vector<ComplexThread*> threadList =
-			partitionMasterListForSpecifiedNumOfThreads(4);
+			partitionMasterListForSpecifiedNumOfThreads(1);
 
 	for (int i = 0; i < threadList.size(); i++) {
 		std::cout << "THREAD DATA COUNT: " << threadList.at(i)->data_list.size()
@@ -264,6 +269,8 @@ void trial2() {
 
 			std::cout << "SORT TYPE SET TO: "
 					<< printENUM(threadList.at(i)->m_sort_type) << std::endl;
+
+			threadList.at(i)->createAndExecuteThread();
 		}
 		if (i == 1) {
 			// Using SELECTION SORT
@@ -345,8 +352,27 @@ void doSelectionSort(std::vector<long> &unsortedList) {
 	}
 }
 
-void doMergeSort(std::vector<long> &unsortedList) {
+void doMergeSort(std::vector<long> &list) {
+	std::vector<long> sortedList;
+	std::vector<long> mLeft;
+	std::vector<long> mRight;
 
+	if (list.size() > 1) {
+
+		long mMiddle = list.size() / 2;
+
+		for (int i = 0; i < mMiddle; i++) {
+			mLeft.push_back(list.at(i));
+		}
+
+		for (int j = mMiddle; j < list.size(); j++) {
+			mRight.push_back(list.at(j));
+		}
+
+		doMergeSort(mLeft);
+		doMergeSort(mRight);
+		list = mergeUnsortedLists(mLeft, mRight);
+	}
 }
 
 void doBubbleSort(std::vector<long> &unsortedList) {
@@ -359,6 +385,31 @@ void doShellSort(std::vector<long> &unsortedList) {
 
 void doInsertionSort(std::vector<long> &unsortedList) {
 
+}
+
+std::vector<long> mergeUnsortedLists(std::vector<long> &firstList,
+		std::vector<long> &secondList) {
+	std::vector<long> finalSortedList;
+
+	while (firstList.size() > 0 || secondList.size() > 0) {
+		if (firstList.size() > 0 && secondList.size() > 0) {
+			if (firstList.at(0) <= secondList.at(0)) {
+				finalSortedList.push_back(firstList.at(0));
+				firstList.erase(firstList.begin());
+			} else {
+				finalSortedList.push_back(secondList.at(0));
+				secondList.erase(secondList.begin());
+			}
+		} else if (firstList.size() > 0) {
+			finalSortedList.push_back(firstList.at(0));
+			firstList.erase(firstList.begin());
+		} else if (secondList.size() > 0) {
+			finalSortedList.push_back(secondList.at(0));
+			secondList.erase(secondList.begin());
+		}
+	}
+
+	return finalSortedList;
 }
 
 std::vector<long> mergeSortedLists(std::vector<long> &firstList,
