@@ -32,6 +32,8 @@ enum SORT_TYPE {
 	COMB_SORT = 9
 };
 
+pthread_mutex_t globalLock = PTHREAD_MUTEX_INITIALIZER;
+
 std::vector<long> masterUnsortedList;
 std::vector<long> masterSortedList;
 
@@ -106,9 +108,6 @@ int main() {
 	}
 
 	std::cout << "All threads finished!" << std::endl;
-//	for(int i = 0; i < masterSortedList.size(); i++) {
-//		std::cout << masterSortedList.at(i) << std::endl;
-//	}
 
 	writeContentsToFile(masterSortedList, "testFile.txt");
 
@@ -128,6 +127,12 @@ std::vector<ComplexThread*> partitionMasterListForSpecifiedNumOfThreads(
 
 		masterUnsortedList.push_back(number);
 	}
+
+	std::cout << "Master list size is: " + masterUnsortedList.size() << std::endl;
+
+	inStream.close();
+
+	std::cout << "Master list size is now: " + masterUnsortedList.size() << std::endl;
 
 	/*
 	 * Sanity check to ensure we actually have a useful number of theads.
@@ -158,8 +163,6 @@ std::vector<ComplexThread*> partitionMasterListForSpecifiedNumOfThreads(
 
 		threadList.push_back(thread);
 	}
-
-	inStream.close();
 
 	return threadList;
 }
@@ -207,17 +210,11 @@ void *performSortOnThread(void* complex_thread) {
 void onThreadFinished(ComplexThread* thread) {
 	pthread_join(thread->m_thread, (void **) &thread);
 
+	pthread_mutex_lock(&globalLock);
 	masterSortedList = mergeSortedLists(thread->data_list, masterSortedList);
+	pthread_mutex_unlock(&globalLock);
 
 	--m_numOfRunningThreads;
-
-	/*
-	 * Synchronizing the message output so we will not have the full message interrupted
-	 * by another thread attempting to post a message at the same time.
-	 */
-//	basic_mutex.lock();
-//	std::cout << "Thread: " << thread->m_thread << " finished!" << std::endl;
-//	basic_mutex.unlock();
 }
 
 /*
@@ -228,9 +225,6 @@ void trial1() {
 			partitionMasterListForSpecifiedNumOfThreads(2);
 
 	for (int i = 0; i < threadList.size(); i++) {
-//		std::cout << "THREAD DATA COUNT: " << threadList.at(i)->data_list.size()
-//				<< std::endl;
-
 		if (i == 0) {
 			// Using QUICK SORT
 			threadList.at(i)->m_sort_type = QUICK_SORT;
